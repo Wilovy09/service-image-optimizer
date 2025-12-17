@@ -1,0 +1,45 @@
+# AWS SAM Template para deployment en Lambda
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Service Compress Image - AWS Lambda Function'
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 1024
+
+Resources:
+  CompressImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/service-compress-image/
+      Handler: bootstrap
+      Runtime: provided.al2
+      Architectures:
+        - x86_64
+      Events:
+        CompressImage:
+          Type: Api
+          Properties:
+            Path: /optimize
+            Method: post
+        CompressImageOptions:
+          Type: Api
+          Properties:
+            Path: /optimize
+            Method: options
+      Environment:
+        Variables:
+          RUST_BACKTRACE: 1
+          RUST_LOG: info
+
+Outputs:
+  CompressImageApi:
+    Description: "API Gateway endpoint URL for Prod stage for Compress Image function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/optimize/"
+  CompressImageFunction:
+    Description: "Compress Image Lambda Function ARN"
+    Value: !GetAtt CompressImageFunction.Arn
+  CompressImageFunctionIamRole:
+    Description: "Implicit IAM Role created for Compress Image function"
+    Value: !GetAtt CompressImageFunctionRole.Arn

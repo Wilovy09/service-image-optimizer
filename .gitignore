@@ -1,20 +1,45 @@
-# These are some examples of commonly ignored file patterns.
-# You should customize this list as applicable to your project.
-# Learn more about .gitignore:
-#     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+*.pkg
+
+# Environment variables
+*.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# AWS Credentials
+.aws/
+
+# Lambda build artifacts
+bootstrap
+*.zip
 
 # Node artifact files
 node_modules/
 dist/
 
-# Compiled Java class files
-*.class
-
 # Compiled Python bytecode
 *.py[cod]
-
-# Log files
-*.log
+*$py.class
 
 # Package files
 *.jar
