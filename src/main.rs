@@ -2,13 +2,11 @@ use hyper::Server;
 use hyper::service::{make_service_fn, service_fn as hyper_service_fn};
 use lambda_runtime::service_fn;
 use std::convert::Infallible;
-
 mod config;
 mod handlers;
 mod models;
 mod services;
 mod utils;
-
 use config::AppConfig;
 use handlers::ImageHandler;
 
@@ -18,10 +16,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     if config.is_running_on_lambda() {
         println!("🔺 Starting Lambda function");
+        let config_clone = config.clone();
 
-        lambda_runtime::run(service_fn(|event| async move {
-            let handler = ImageHandler::new();
-            handler.handle_lambda_event(event).await
+        lambda_runtime::run(service_fn(move |event| {
+            let handler = ImageHandler::new(&config_clone);
+            async move { handler.handle_lambda_event(event).await }
         }))
         .await?;
     } else {
@@ -38,12 +37,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         );
 
         let addr = config.server_address().parse()?;
+        let config_for_service = config.clone();
 
-        let make_svc = make_service_fn(|_conn| async {
-            Ok::<_, Infallible>(hyper_service_fn(|req| async move {
-                let handler = ImageHandler::new();
-                handler.handle_http_request(req).await
-            }))
+        let make_svc = make_service_fn(move |_conn| {
+            let config_clone = config_for_service.clone();
+            async move {
+                Ok::<_, Infallible>(hyper_service_fn(move |req| {
+                    let handler = ImageHandler::new(&config_clone);
+                    async move { handler.handle_http_request(req).await }
+                }))
+            }
         });
 
         let server = Server::bind(&addr).serve(make_svc);

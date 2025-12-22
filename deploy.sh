@@ -2,7 +2,7 @@
 
 # Script para build y deploy en AWS Lambda
 set -e
-echo "🔨 Building Rust project for Lambda..."
+echo "🔨 Building y Deploying Rust project for Lambda..."
 
 # Install cargo-lambda if not present
 if ! command -v cargo-lambda &> /dev/null; then
@@ -10,18 +10,15 @@ if ! command -v cargo-lambda &> /dev/null; then
     cargo install cargo-lambda
 fi
 
-# Build for Lambda
-cargo lambda build --release
-
 echo "📦 Building SAM package..."
 
-# Build SAM package
+# Build SAM package (SAM hará el build de Rust automáticamente)
 sam build
 
 echo "🚀 Deploying to AWS..."
 
 # Deploy
-sam deploy --guided
+sam deploy
 
 echo "✅ Deployment completed!"
 echo ""

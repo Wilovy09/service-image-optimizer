@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct OptimizeRequest {
-    pub image_data: String, // base64 encoded image
+    pub image_data: String,
     #[serde(default = "default_quality")]
     pub quality: u8, // 1-100, default 75
     #[serde(default = "default_format")]
@@ -15,7 +15,7 @@ pub struct OptimizeRequest {
 
 #[derive(Serialize, Debug, Clone)]
 pub struct OptimizeResponse {
-    pub optimized_image: String, // base64 encoded optimized image
+    pub optimized_image: String,
     pub original_size: usize,
     pub optimized_size: usize,
     pub compression_ratio: f64,

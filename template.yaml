@@ -5,16 +5,22 @@ Description: 'Service Compress Image - AWS Lambda Function'
 
 Globals:
   Function:
-    Timeout: 30
-    MemorySize: 1024
+    Timeout: 60
+    MemorySize: 2048
+  Api:
+    # Aumentar el límite de payload de API Gateway
+    BinaryMediaTypes:
+      - "*/*"
 
 Resources:
   CompressImageFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: rust-cargolambda
     Properties:
-      CodeUri: target/lambda/service-compress-image/
+      CodeUri: ./
       Handler: bootstrap
-      Runtime: provided.al2
+      Runtime: provided.al2023
       Architectures:
         - x86_64
       Events:
@@ -23,15 +29,35 @@ Resources:
           Properties:
             Path: /optimize
             Method: post
+            RequestParameters:
+              - method.request.header.Content-Length:
+                  Required: false
+        CompressImageBinary:
+          Type: Api
+          Properties:
+            Path: /optimize-binary
+            Method: post
+            RequestParameters:
+              - method.request.header.Content-Length:
+                  Required: false
         CompressImageOptions:
           Type: Api
           Properties:
             Path: /optimize
             Method: options
+        CompressImageBinaryOptions:
+          Type: Api
+          Properties:
+            Path: /optimize-binary
+            Method: options
       Environment:
         Variables:
           RUST_BACKTRACE: 1
           RUST_LOG: info
+          MAX_IMAGE_SIZE: "104857600"  # 100MB
+          SERVER_TIMEOUT: "60"
+          COMPRESSION_TIMEOUT: "30"
+          ORIGINS: "http://localhost:5173,https://adquiere.co,https://test.adquiere.co"
 
 Outputs:
   CompressImageApi:

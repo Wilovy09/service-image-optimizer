@@ -27,7 +27,7 @@ Servicio avanzado de compresión de imágenes multi-formato optimizado para AWS 
 
 ```bash
 # Instalar cargo-lambda
-pip install cargo-lambda
+cargo install cargo-lambda
 ```
 
 ## 🏗️ Instalación y Build

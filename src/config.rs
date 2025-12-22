@@ -4,6 +4,7 @@ use std::env;
 pub struct AppConfig {
     pub server: ServerConfig,
     pub compression: CompressionConfig,
+    pub cors: CorsConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -19,6 +20,11 @@ pub struct CompressionConfig {
     pub default_quality: u8,
     pub aggressive_quality: u8,
     pub timeout_seconds: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct CorsConfig {
+    pub allowed_origins: Vec<String>,
 }
 
 impl AppConfig {
@@ -54,6 +60,13 @@ impl AppConfig {
                     .unwrap_or_else(|_| "10".to_string())
                     .parse()
                     .unwrap_or(10),
+            },
+            cors: CorsConfig {
+                allowed_origins: env::var("ORIGINS")
+                    .unwrap_or_else(|_| "*".to_string())
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect(),
             },
         }
     }

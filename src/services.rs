@@ -1,10 +1,10 @@
 use crate::models::*;
 use crate::utils::decode_base64;
 use base64::{Engine as _, engine::general_purpose};
-use image::{DynamicImage, ImageEncoder, ImageFormat, codecs::jpeg::JpegEncoder};
-use oxipng::{Options, StripChunks, optimize_from_memory};
+use image::{
+    DynamicImage, ImageEncoder, ImageFormat, codecs::jpeg::JpegEncoder, codecs::png::PngEncoder,
+};
 use std::io::Cursor;
-use std::time::Duration;
 
 pub struct ImageCompressionService;
 
@@ -87,7 +87,7 @@ impl ImageCompressionService {
                 rgb_img.as_raw(),
                 rgb_img.width(),
                 rgb_img.height(),
-                image::ColorType::Rgb8,
+                image::ExtendedColorType::Rgb8,
             )
             .map_err(|_| "Error comprimiendo JPEG".to_string())?;
 
@@ -99,41 +99,37 @@ impl ImageCompressionService {
         original_bytes: &[u8],
         request: &OptimizeRequest,
     ) -> Result<Vec<u8>, String> {
-        let mut options = Options::default();
-        options.optimize_alpha = true;
-        options.strip = StripChunks::Safe;
-        options.interlace = Some(false);
-        options.timeout = Some(Duration::from_secs(10));
-        options.max_decompressed_size = Some(50 * 1024 * 1024);
+        let img = image::load_from_memory(original_bytes)
+            .map_err(|_| "Error cargando PNG".to_string())?;
 
-        if request.aggressive {
-            options.strip = StripChunks::All;
-        }
+        let mut buffer = Vec::new();
+        let mut cursor = Cursor::new(&mut buffer);
 
-        optimize_from_memory(original_bytes, &options)
-            .map_err(|_| "Error optimizando PNG".to_string())
+        let encoder = PngEncoder::new(&mut cursor);
+
+        encoder
+            .write_image(
+                img.as_bytes(),
+                img.width(),
+                img.height(),
+                img.color().into(),
+            )
+            .map_err(|_| "Error comprimiendo PNG".to_string())?;
+
+        Ok(buffer)
     }
 
     fn compress_webp(
         &self,
         img: &DynamicImage,
-        _request: &OptimizeRequest,
+        request: &OptimizeRequest,
     ) -> Result<Vec<u8>, String> {
         let rgb_img = img.to_rgb8();
-        let mut buffer = Vec::new();
-        let mut cursor = Cursor::new(&mut buffer);
 
-        image::write_buffer_with_format(
-            &mut cursor,
-            &rgb_img,
-            rgb_img.width(),
-            rgb_img.height(),
-            image::ColorType::Rgb8,
-            ImageFormat::WebP,
-        )
-        .map_err(|_| "Error comprimiendo WebP".to_string())?;
+        let encoder = webp::Encoder::from_rgb(&rgb_img, rgb_img.width(), rgb_img.height());
+        let encoded = encoder.encode(request.quality as f32);
 
-        Ok(buffer)
+        Ok(encoded.to_vec())
     }
 
     pub fn create_response(&self, result: CompressionResult) -> OptimizeResponse {
