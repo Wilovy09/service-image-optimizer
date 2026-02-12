@@ -11,6 +11,7 @@ pub struct AppConfig {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    #[allow(dead_code)]
     pub timeout_seconds: u64,
 }
 
@@ -19,6 +20,7 @@ pub struct CompressionConfig {
     pub max_image_size: usize,
     pub default_quality: u8,
     pub aggressive_quality: u8,
+    #[allow(dead_code)]
     pub timeout_seconds: u64,
 }
 
@@ -35,9 +37,9 @@ impl AppConfig {
             server: ServerConfig {
                 host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
                 port: env::var("PORT")
-                    .unwrap_or_else(|_| "8080".to_string())
+                    .unwrap_or_else(|_| "3000".to_string())
                     .parse()
-                    .unwrap_or(8080),
+                    .unwrap_or(3000),
                 timeout_seconds: env::var("SERVER_TIMEOUT")
                     .unwrap_or_else(|_| "30".to_string())
                     .parse()

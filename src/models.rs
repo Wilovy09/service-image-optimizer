@@ -7,8 +7,9 @@ pub struct OptimizeRequest {
     pub quality: u8, // 1-100, default 75
     #[serde(default = "default_format")]
     pub format: String, // "jpeg", "png", "webp", "auto"
+    #[allow(dead_code)] // Kept for API compatibility; image crate lacks progressive JPEG support
     #[serde(default)]
-    pub progressive: bool, // Progressive JPEG
+    pub progressive: bool,
     #[serde(default)]
     pub aggressive: bool, // Aggressive compression
 }
@@ -24,15 +25,9 @@ pub struct OptimizeResponse {
     pub quality_used: u8,
 }
 
-#[derive(Serialize, Debug)]
-pub struct ErrorResponse {
-    pub error: String,
-}
-
 #[derive(Debug, Clone)]
 pub struct ImageData {
     pub bytes: Vec<u8>,
-    pub format: String,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +39,38 @@ pub struct CompressionResult {
     pub original_format: String,
     pub output_format: String,
     pub quality_used: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ResizeMode {
+    Fit,
+    Fill,
+    Force,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResizeOptions {
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub mode: ResizeMode,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransformOptions {
+    pub quality: u8,
+    pub black_and_white: bool,
+    pub border_radius: u32,
+    pub resize: Option<ResizeOptions>,
+    pub output_format: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BinaryCompressionResult {
+    pub optimized_bytes: Vec<u8>,
+    pub original_size: usize,
+    pub optimized_size: usize,
+    pub original_format: String,
+    pub output_format: String,
 }
 
 fn default_quality() -> u8 {

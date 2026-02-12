@@ -25,7 +25,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .await?;
     } else {
         println!("💻 Starting local server at {}", config.server_address());
-        println!("- Use POST /optimize with JSON format");
+        println!("- Use POST /optimize with JSON or multipart/form-data");
+        println!("- Use POST /resize with multipart/form-data");
         println!(
             "- Max image size: {} MB",
             config.compression.max_image_size / (1024 * 1024) // 50MB

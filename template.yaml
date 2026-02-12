@@ -1,4 +1,3 @@
-# AWS SAM Template para deployment en Lambda
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: 'Service Compress Image - AWS Lambda Function'
@@ -8,7 +7,6 @@ Globals:
     Timeout: 60
     MemorySize: 2048
   Api:
-    # Aumentar el límite de payload de API Gateway
     BinaryMediaTypes:
       - "*/*"
 
@@ -32,6 +30,14 @@ Resources:
             RequestParameters:
               - method.request.header.Content-Length:
                   Required: false
+        ResizeImage:
+          Type: Api
+          Properties:
+            Path: /resize
+            Method: post
+            RequestParameters:
+              - method.request.header.Content-Length:
+                  Required: false
         CompressImageBinary:
           Type: Api
           Properties:
@@ -44,6 +50,11 @@ Resources:
           Type: Api
           Properties:
             Path: /optimize
+            Method: options
+        ResizeImageOptions:
+          Type: Api
+          Properties:
+            Path: /resize
             Method: options
         CompressImageBinaryOptions:
           Type: Api

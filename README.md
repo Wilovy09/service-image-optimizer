@@ -9,11 +9,13 @@ Servicio avanzado de compresión de imágenes multi-formato optimizado para AWS 
 
 - **🏃‍♂️ Ultra-rápido**: Desarrollado en Rust para máximo rendimiento
 - **☁️ AWS Lambda Ready**: Completamente optimizado para serverless
-- **🎯 Multi-formato**: Soporta PNG, JPEG, JPG, WebP con conversión automática
+- **🎯 Multi-formato**: Soporta PNG, JPEG, GIF, WebP, BMP, TIFF
 - **🗜️ Compresión extrema**: Hasta 91% de reducción de tamaño
 - **🤖 Conversión inteligente**: Auto-convierte PNG a JPEG para máxima compresión
 - **⚙️ Configuración avanzada**: Control de calidad, modo agresivo, formato de salida
-- **🌐 API JSON**: Interfaz REST completa con formato base64
+- **📐 Redimensionamiento**: Resize con `fit`, `fill` y `force`
+- **🧩 Transformaciones**: Blanco y negro, border radius
+- **🌐 API JSON y multipart**: Base64 o `multipart/form-data`
 - **🔒 CORS habilitado**: Listo para usar desde aplicaciones web
 - **📈 Auto-escalable**: Se escala automáticamente en AWS
 - **🏗️ Arquitectura modular**: Código bien estructurado y mantenible
@@ -34,7 +36,7 @@ cargo install cargo-lambda
 
 ```bash
 # Clonar el repositorio
-git clone <repository-url>
+git clone https://github.com/Wilovy09/service-image-optimizer.git
 cd service-compress-image
 
 # Build para desarrollo local
@@ -50,14 +52,27 @@ cargo lambda build --release
 # Ejecutar localmente (modo testing)
 cargo run
 
-# El servidor estará disponible en http://localhost:8080
+# El servidor estará disponible en http://localhost:3000
+```
+
+## 🐳 Docker
+
+```bash
+docker build -t img-optimizer .
+docker run --rm -p 3000:3000 img-optimizer
+```
+
+Con Docker Compose:
+
+```bash
+docker compose up --build
 ```
 
 ## 📡 API
 
 ### POST /optimize
 
-Optimiza imágenes con configuración avanzada.
+Optimiza imágenes con configuración avanzada (JSON base64).
 
 **Request básico:**
 ```json
@@ -97,14 +112,114 @@ Optimiza imágenes con configuración avanzada.
 }
 ```
 
+### POST /optimize (multipart/form-data)
+
+Optimiza una imagen sin cambiar el tamaño. Recibe `multipart/form-data` con un archivo.
+
+Query params:
+
+| Param | Tipo | Default | Descripcion |
+|-------|------|---------|-------------|
+| `q` | u8 (1-100) | 85 | Calidad de compresion (aplica a JPEG) |
+| `bw` | bool | false | Convertir a blanco y negro |
+| `br` | u32 | 0 | Border radius en pixeles |
+
+Respuestas:
+
+- `200` con el archivo optimizado en su formato original.
+- Headers: `Content-Type`, `X-Original-Size`, `X-Optimized-Size` (bytes).
+
+> Si se usa `br` con JPEG, la salida se convierte a PNG (JPEG no soporta transparencia).
+
+Ejemplos:
+
+```bash
+# Optimizar PNG
+curl -X POST \
+  -F "file=@input.png" \
+  http://localhost:3000/optimize \
+  --output optimized.png
+
+# Optimizar JPEG con calidad 60
+curl -X POST \
+  -F "file=@photo.jpg" \
+  "http://localhost:3000/optimize?q=60" \
+  --output optimized.jpg
+
+# Blanco y negro con bordes redondeados
+curl -X POST \
+  -F "file=@avatar.png" \
+  "http://localhost:3000/optimize?bw=true&br=50" \
+  --output avatar_bw_rounded.png
+```
+
+### POST /resize (multipart/form-data)
+
+Redimensiona y optimiza una imagen. Recibe `multipart/form-data` con un archivo y parametros query.
+
+Query params:
+
+| Param | Tipo | Default | Descripcion |
+|-------|------|---------|-------------|
+| `w` | u32 | - | Ancho objetivo |
+| `h` | u32 | - | Alto objetivo |
+| `t` | string | fit | Tipo de resize: `fit`, `fill`, `force` |
+| `q` | u8 (1-100) | 85 | Calidad de compresion (aplica a JPEG) |
+| `bw` | bool | false | Convertir a blanco y negro |
+| `br` | u32 | 0 | Border radius en pixeles |
+
+Reglas:
+
+- Debes enviar `w` o `h` (o ambos).
+- Si solo envias uno, se mantiene la proporcion.
+
+Respuestas:
+
+- `200` con el archivo redimensionado en su formato original.
+- Headers: `Content-Type`, `X-Original-Size`, `X-Optimized-Size` (bytes).
+
+Ejemplos:
+
+```bash
+# Resize manteniendo proporcion
+curl -X POST \
+  -F "file=@input.jpg" \
+  "http://localhost:3000/resize?w=800" \
+  --output resized.jpg
+
+# Resize con blanco y negro y border radius
+curl -X POST \
+  -F "file=@avatar.png" \
+  "http://localhost:3000/resize?w=200&h=200&t=fill&bw=true&br=100" \
+  --output avatar_thumb.png
+```
+
 ### 🎯 Formatos Soportados
 
 | Entrada | Salida | Compresión Típica | Uso Recomendado |
 |---------|--------|------------------|-----------------|
-| PNG     | JPEG   | 80-95%          | Fotografías, imágenes complejas |
-| PNG     | PNG    | 20-40%          | Imágenes con transparencia |
-| JPEG    | JPEG   | 30-60%          | Re-optimización de fotos |
-| WebP    | JPEG   | 70-90%          | Conversión para compatibilidad |
+| PNG     | PNG/JPEG   | 20-95%      | Imágenes con o sin transparencia |
+| JPEG    | JPEG/PNG   | 30-60%      | Re-optimización de fotos |
+| WebP    | WebP/JPEG  | 70-90%      | Conversión para compatibilidad |
+| GIF     | GIF        | 10-30%      | Imágenes simples | 
+| BMP     | BMP        | 10-40%      | Compatibilidad legacy |
+| TIFF    | TIFF       | 10-40%      | Workflows de alta calidad |
+
+## ✅ Validaciones
+
+- Solo se aceptan formatos soportados (PNG, JPEG, GIF, WebP, BMP, TIFF).
+- Tamaño maximo de payload: 50 MB.
+
+## ⚡ Modo Lambda
+
+Si la variable de entorno `AWS_LAMBDA_RUNTIME_API` esta presente, el binario funciona como handler de Lambda y expone las rutas `/optimize` y `/resize` de la misma forma que en modo servidor.
+
+## 📝 Notas
+
+- La optimizacion PNG usa codificacion directa (oxipng no esta habilitado por defecto).
+- La optimizacion JPEG re-codifica con la calidad especificada (default 85 en multipart).
+- El redimensionamiento usa filtro `Lanczos3`.
+- El border radius genera transparencia, por lo que si el formato de entrada no soporta alpha (JPEG), la salida se convierte automaticamente a PNG.
 
 ## 🚀 Deployment en AWS
 
@@ -130,7 +245,7 @@ sam deploy --guided
 # En template.yaml o AWS Console
 RUST_LOG=info
 HOST=0.0.0.0                    # Host del servidor (desarrollo local)
-PORT=8080                       # Puerto del servidor (desarrollo local)
+PORT=3000                       # Puerto del servidor (desarrollo local)
 MAX_IMAGE_SIZE=52428800         # Tamaño máximo de imagen (50MB)
 DEFAULT_QUALITY=75              # Calidad por defecto
 AGGRESSIVE_QUALITY=60           # Calidad para modo agresivo
@@ -153,12 +268,12 @@ SERVER_TIMEOUT=30              # Timeout del servidor (segundos)
 base64 -i image.png > image_base64.txt
 
 # Request básico
-curl -X POST http://localhost:8080/optimize \
+curl -X POST http://localhost:3000/optimize \
   -H "Content-Type: application/json" \
   -d '{"image_data": "'$(cat image_base64.txt)'"}'
 
 # Request avanzado con compresión agresiva
-curl -X POST http://localhost:8080/optimize \
+curl -X POST http://localhost:3000/optimize \
   -H "Content-Type: application/json" \
   -d '{
     "image_data": "'$(cat image_base64.txt)'",
@@ -181,7 +296,7 @@ async function compressImage(file, options = {}) {
     progressive: options.progressive || false
   };
   
-  const response = await fetch('http://localhost:8080/optimize', {
+  const response = await fetch('http://localhost:3000/optimize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -209,7 +324,7 @@ El servicio se puede configurar mediante variables de entorno:
 | Variable | Descripción | Default | Rango |
 |----------|-------------|---------|--------|
 | `HOST` | Host para desarrollo local | `0.0.0.0` | - |
-| `PORT` | Puerto para desarrollo local | `8080` | 1-65535 |
+| `PORT` | Puerto para desarrollo local | `3000` | 1-65535 |
 | `MAX_IMAGE_SIZE` | Tamaño máximo de imagen | `52428800` (50MB) | bytes |
 | `DEFAULT_QUALITY` | Calidad por defecto | `75` | 1-100 |
 | `AGGRESSIVE_QUALITY` | Calidad modo agresivo | `60` | 1-100 |
@@ -285,12 +400,12 @@ src/
 
 ### 📈 Logs Estructurados
 ```bash
-🚀 Starting local server at 0.0.0.0:8080
+🚀 Starting local server at 0.0.0.0:3000
 💡 Use POST /optimize with JSON format
 📋 Max image size: 50 MB
 🎯 Default quality: 75
 ⚡ Aggressive quality: 60
-✅ Server running on http://0.0.0.0:8080
+✅ Server running on http://0.0.0.0:3000
 ```
 
 ### 🎯 Métricas Customizadas

@@ -11,6 +11,16 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 dotenv = "0.15.0"
-image = { version = "0.25", features = ["jpeg", "png", "webp"] }
+image = { version = "0.25", features = [
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "bmp",
+    "tiff",
+] }
 webp = "0.3"
 url = "2.5"
+multer = "2"
+futures-util = "0.3"
+bytes = "1"
