@@ -161,9 +161,9 @@ impl ImageCompressionService {
         img: &DynamicImage,
         quality: u8,
     ) -> Result<Vec<u8>, String> {
-        let rgb_img = img.to_rgb8();
+        let rgba_img = img.to_rgba8();
 
-        let encoder = webp::Encoder::from_rgb(&rgb_img, rgb_img.width(), rgb_img.height());
+        let encoder = webp::Encoder::from_rgba(&rgba_img, rgba_img.width(), rgba_img.height());
         let encoded = encoder.encode(quality as f32);
 
         Ok(encoded.to_vec())
